@@ -17,21 +17,14 @@ class Song(metaclass=ABCMeta):
         return hash(self.name)
 
 
-class NoTheSongError(Exception):
-    # todo:添加详细的错误信息
-    pass
-
-
 class Songs(UserList):
     def __init__(self) -> None:
         super().__init__()
 
-    def __getitem__(self, name: str) -> Song:
+    def by_name(self, name: str) -> Song:
         # todo:如果有重名歌曲怎么办，或许可以添加歌手信息来识别
-        if len((results := [song for song in self.data if song.name == name])) == 1:
-            return results[0]
-        else:
-            raise NoTheSongError()
+        return [song for song in self.data if song.name == name]
+
 
     @property
     def names(self) -> List[str]:

@@ -65,14 +65,19 @@ class Netease:
         json_data_file.data['netease']['waitting_resources'] = list(songs_name_waitting_resources)
 
         for sm in songs_name_to_copy:
-            shutil.copy(self.local_songs[sm].path,
-                        depository.path / self.online_songs[sm].parents[0] / self.local_songs[sm].name)
+            online_songs = self.online_songs.by_name(sm)
+            for os_ in online_songs:
+                target = depository.path / os_.parents[0]
+                if not target.exists():
+                    target.mkdir()
+                shutil.copy(self.local_songs.by_name(sm)[0].path, target)
 
         songs_name_waitting_be_deleted = set(json_data_file.data['netease']['waitting_be_deleted'])
         songs_name_be_deleted = online_songs_name_deleted & songs_name_waitting_be_deleted
         songs_name_to_delete = online_songs_name_deleted - songs_name_waitting_be_deleted
+        temp = set (json_data_file.data['netease']['last_deleted'])
         json_data_file.data['netease']['waitting_be_deleted'] = list(
-            songs_name_waitting_be_deleted - songs_name_be_deleted)
-
+            songs_name_waitting_be_deleted - songs_name_be_deleted - temp)
+        json_data_file.data['netease']['last_deleted'] = list(songs_name_to_delete)
         for sm in songs_name_to_delete:
-            os.remove(depository.local_songs[sm].path)
+            os.remove(depository.local_songs.by_name(sm)[0].path)

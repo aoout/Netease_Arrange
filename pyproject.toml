@@ -11,6 +11,7 @@ readme = 'README.md'
 python = "^3.9"
 pycryptodomex = "^3.14.1"
 requests = "^2.27.1"
+munch = "^2.5.0"
 
 [tool.poetry.dev-dependencies]
 

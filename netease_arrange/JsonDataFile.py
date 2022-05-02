@@ -26,11 +26,11 @@ json_data_file = JsonDataFile(DATA_PATH, default_data={
         {
             "last_recorded": [],
             "waitting_resources": [],
-            "waitting_be_deleted": []
+            "waitting_be_deleted": [],
+            "last_deleted":[]
         },
     "depository":
         {
             "last_recorded": []
-
         }
 })

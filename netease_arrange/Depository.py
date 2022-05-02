@@ -1,7 +1,6 @@
 from functools import cached_property
 from itertools import chain
 from pathlib import Path
-from typing import List
 
 from .JsonDataFile import json_data_file
 from .LocalSong import LocalSong
@@ -15,7 +14,7 @@ class Depository():
         self.path = path
 
     @cached_property
-    def local_songs(self) -> List[LocalSong]:
+    def local_songs(self) -> Songs:
         songs = Songs()
         for sp in list(chain(*[self.path.glob(f'**/*.{suffix}') for suffix in ['flac', 'mp3']])):
             song = LocalSong(sp)
