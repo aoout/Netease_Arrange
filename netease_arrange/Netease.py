@@ -15,7 +15,8 @@ class Netease:
     def __init__(self, download_path: Path or str, account: str, password: str) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
-        self._convert()
+        if constant.converter_path.exists():
+            self._convert()
         self._api = Api(account, password)
 
     def _convert(self) -> None:
