@@ -2,7 +2,7 @@ import json
 import os.path
 from pathlib import Path
 
-from .constant import DATA_PATH
+from .constant import constant
 
 
 class JsonDataFile:
@@ -21,7 +21,7 @@ class JsonDataFile:
         self.path.write_text(json.dumps(self.data, ensure_ascii=False), encoding='utf-8')
 
 
-json_data_file = JsonDataFile(DATA_PATH, default_data={
+json_data_file = JsonDataFile(constant.data_path , default_data={
     "netease":
         {
             "last_recorded": [],

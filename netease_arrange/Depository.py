@@ -1,10 +1,9 @@
 from functools import cached_property
 from itertools import chain
 from pathlib import Path
+from typing import List
 
 from .JsonDataFile import json_data_file
-from .LocalSong import LocalSong
-from .Song import Songs
 
 
 class Depository():
@@ -14,17 +13,16 @@ class Depository():
         self.path = path
 
     @cached_property
-    def local_songs(self) -> Songs:
-        songs = Songs()
-        for sp in list(chain(*[self.path.glob(f'**/*.{suffix}') for suffix in ['flac', 'mp3']])):
-            song = LocalSong(sp)
-            songs.append(song)
-        return songs
+    def local_songs_path(self) -> List[str]:
+        songs_path = []
+        for s in chain(*(self.path.rglob(f'*.{suffix}') for suffix in ('flac', 'mp3'))):
+            songs_path.append(str((s.relative_to(self.path)).with_suffix('')))
+        return songs_path
 
     def diff(self) -> None:
-        songs_now = set(self.local_songs.names)
+        songs_now = set(self.local_songs_path)
         songs_before = set(json_data_file.data['depository']['last_recorded'])
-        json_data_file.data['depository']['last_recorded'] =  list(songs_now)
+        json_data_file.data['depository']['last_recorded'] = list(songs_now)
 
         songs_deleted = songs_before - songs_now
         temp = set(json_data_file.data['netease']['waitting_be_deleted'])

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "netease_arrange"
-version = "0.1.0"
+version = "1.0.0"
 description = "Netease_Arrange helps you organize your music files from netease."
 license = "MIT"
 authors = ["aoout <wuz66280@gmail.com>"]

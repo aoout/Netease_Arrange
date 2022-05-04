@@ -1,11 +1,12 @@
 import platform
 from http.cookiejar import Cookie, LWPCookieJar
+from typing import Optional
 
 import requests
 from requests.models import Response
 
 from .decrypt import encrypted_password, encrypted_request
-from ..constant import *
+from ..constant import constant
 
 HEADERS = {
     "Accept": "*/*",
@@ -32,9 +33,9 @@ class RawApi:
     """
 
     @classmethod
-    def login(cls, account: str, password: str) -> Response:
+    def login(cls, account: str, password: str) -> Optional[Response]:
 
-        cookie_jar = LWPCookieJar(COOKIES_PATH)
+        cookie_jar = LWPCookieJar(constant.cookies_path )
         cookie_jar.load()
 
         cls._session = requests.Session()
@@ -49,18 +50,37 @@ class RawApi:
         params = dict(user_info, coutrycode='86', rememberLogin='true')
         r = cls._request('post', LOGIN_URL, params, {"os": "pc"})
         cls._session.cookies.save()
-        return r
+        if r.status_code == 200 :
+            if 'code' not in r.json() or r.json()['code'] == 200:
+                return r
+        print('Login request failed')
+        print(f'{r.status_code}:{r.text}')
+        return None
 
     @classmethod
-    def get_playlists(cls, user_id: str) -> Response:
+    def get_playlists(cls, user_id: str) -> Optional[Response]:
         params = dict(uid=user_id, offset=0, limit=50)
-        return cls._request('post', PLAYLIST_URL, params)
+        r = cls._request('post', PLAYLIST_URL, params)
+        if r.status_code == 200:
+            if 'code' not in r.json() or r.json()['code'] == 200:
+                return r
+
+        print('Playlists request failed')
+        print(f'{r.status_code}:{r.text}')
+        return None
 
     @classmethod
-    def get_songs_from_playlist(cls, playlist_id: int) -> Response:
+    def get_songs_from_playlist(cls, playlist_id: int) -> Optional[Response]:
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
-        return cls._request('post', SONGS_URL, params, dict(os=platform.system()))
+        r = cls._request('post', SONGS_URL, params, dict(os=platform.system()))
+        if r.status_code == 200:
+            if 'code' not in r.json() or r.json()['code'] == 200:
+                return r
+
+        print('Songs requests failed')
+        print(f'{r.status_code}:{r.text}')
+        return None
 
     @classmethod
     def _request(cls, method: str, url: str, params: dict, custom_cookies: dict = {}) -> Response:
