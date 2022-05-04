@@ -1,70 +1,65 @@
-import json
-import os
-from dataclasses import dataclass, asdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from .constant import constant
+from .Paths import paths
 from .raw_api import RawApi
-
-
-@dataclass
-class ApiArtist:
-    name: str
-    id: int
-
-
-@dataclass
-class ApiSong:
-    name: str
-    id: int
-    artists: List[ApiArtist]
-
-
-@dataclass
-class ApiPlayLists:
-    playlists: Dict[str, List[ApiSong]]
+from .util import DataDict, diff_dict
 
 
 class Api:
+
     def __init__(self, account: str, password: str) -> None:
+        self.data = DataDict(paths['api_data'], dict(), 'utf-8', False)
+        self.data.read()
+        self._login(account, password)
+        self.data.update(self._merge_playlists(self.data, *self.get_playlists()))
+        self.data.write()
 
-        if os.path.getsize(constant.api_data_path ) == 0:
-            self.data = ApiPlayLists({})
-        else:
-            self.data = ApiPlayLists(json.loads(constant.api_data_path .read_text(encoding='utf-8')))
-
-        if self._update(account, password):
-            self._write()
-
-    def _update(self, account: str, password: str) -> bool:
-        if login_r := RawApi.login(account, password):
-            user_id = login_r.json()['account']['id']
-            if playlists_r := RawApi.get_playlists(user_id):
-                self._playlists_id, self._playlists_name = ([pl[field] for pl in playlists_r.json()['playlist']] for
-                                                            field in ('id', 'name'))
-
-                for key in set(self._playlists_name) | set(self.data.playlists.keys()):
-                    if key not in set(self.data.playlists.keys()):
-                        self.data.playlists[key] = []
-                    elif key not in self._playlists_name:
-                        del self.data.playlists[key]
-
-                self._get_songs_name()
-                return True
+    def _login(self, account: str, password: str) -> bool:
+        if r := RawApi.login(account, password):
+            self.user_id = r.json()['account']['id']
+            return True
         return False
 
-    def _write(self) -> None:
-        constant.api_data_path.write_text(json.dumps(asdict(self.data), ensure_ascii=False), encoding='utf-8')
+    def get_playlists(self) -> (bool, Dict[str, List]):
+        playlists = dict()
+        finished = True
+        if r := RawApi.get_playlists(self.user_id):
+            for playlist in r.json()['playlist']:
+                if songs := self.get_songs_from_playlist(playlist['id']):
+                    playlists[playlist['name']] = songs
+                else:
+                    finished = False
+                    break
+        return finished, playlists
 
-    def _get_songs_name(self) -> None:
-        for pl_id, pl_name in zip(self._playlists_id, self._playlists_name):
-            if songs_r := RawApi.get_songs_from_playlist(pl_id):
+    def get_songs_from_playlist(self, playlist_id: int) -> Optional[List[Dict]]:
+        songs = list()
+        if r := RawApi.get_songs_from_playlist(playlist_id):
+            for song in r.json()['playlist']['tracks']:
+                song_ = dict(
+                    name=song['name'],
+                    id=song['id'],
+                    artists=[
+                        dict(
+                            name=artist['name'],
+                            id=artist['id']
+                        ) for artist in song['ar']
+                    ]
+                )
+                songs.append(song_)
+            return songs
 
-                for sg in songs_r.json()['playlist']['tracks']:
-                    name = sg['name']
-                    id_ = sg['id']
-                    artists = [ApiArtist(ar['name'], ar['id']) for ar in sg['ar']]
-                    song = ApiSong(name, id_, artists)
-                    self.data.playlists[pl_name] += [song]
-            else:
-                break
+    @staticmethod
+    def _merge_playlists(playlists_before: Dict, finished: bool, playlists_now: Dict) -> Dict:
+
+        diff = diff_dict(playlists_before, playlists_now)
+        for key in diff['+']:
+            playlists_before[key] = list()
+        if finished:
+            for key in diff['-']:
+                del playlists_before[key]
+
+        for playlist_name, songs in playlists_now.items():
+            playlists_before[playlist_name] = playlists_now[playlist_name]
+
+        return playlists_before

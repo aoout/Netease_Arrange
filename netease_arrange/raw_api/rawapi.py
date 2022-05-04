@@ -6,7 +6,7 @@ import requests
 from requests.models import Response
 
 from .decrypt import encrypted_password, encrypted_request
-from ..constant import constant
+from ..Paths import paths
 
 HEADERS = {
     "Accept": "*/*",
@@ -26,16 +26,11 @@ SONGS_URL = BASE_URL + 'v3/playlist/detail'
 
 
 class RawApi:
-    """
-    登陆网易云账号，从中获得该用户的歌单，某歌单中的歌曲信息等信息。
-    并不提供下载其中歌曲的功能。这是因为通过这种api下载到的资源最高只有.mp3格式。
-    然而，预先从官方客户端下载好后，可以再由本项目进行处理，就可以熊掌与鱼兼得。
-    """
 
     @classmethod
     def login(cls, account: str, password: str) -> Optional[Response]:
 
-        cookie_jar = LWPCookieJar(constant.cookies_path )
+        cookie_jar = LWPCookieJar(paths['cookies'])
         cookie_jar.load()
 
         cls._session = requests.Session()
@@ -50,23 +45,23 @@ class RawApi:
         params = dict(user_info, coutrycode='86', rememberLogin='true')
         r = cls._request('post', LOGIN_URL, params, {"os": "pc"})
         cls._session.cookies.save()
-        if r.status_code == 200 :
-            if 'code' not in r.json() or r.json()['code'] == 200:
-                return r
+        if RawApi.request_vaild(r):
+            return r
         print('Login request failed')
         print(f'{r.status_code}:{r.text}')
+        print(r.url)
         return None
 
     @classmethod
     def get_playlists(cls, user_id: str) -> Optional[Response]:
         params = dict(uid=user_id, offset=0, limit=50)
         r = cls._request('post', PLAYLIST_URL, params)
-        if r.status_code == 200:
-            if 'code' not in r.json() or r.json()['code'] == 200:
-                return r
+        if RawApi.request_vaild(r):
+            return r
 
         print('Playlists request failed')
         print(f'{r.status_code}:{r.text}')
+        print(r.url)
         return None
 
     @classmethod
@@ -74,12 +69,12 @@ class RawApi:
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
         r = cls._request('post', SONGS_URL, params, dict(os=platform.system()))
-        if r.status_code == 200:
-            if 'code' not in r.json() or r.json()['code'] == 200:
-                return r
+        if RawApi.request_vaild(r):
+            return r
 
         print('Songs requests failed')
         print(f'{r.status_code}:{r.text}')
+        print(r.url)
         return None
 
     @classmethod
@@ -106,3 +101,10 @@ class RawApi:
             domain_specified=True, domain_initial_dot=False, path="/", path_specified=True, secure=False,
             expires=None, discard=False, comment=None, comment_url=None, rest={},
         )
+
+    @staticmethod
+    def request_vaild(response: Response) -> bool:
+        if response.status_code == 200:
+            if 'code' not in response.json() or response.json()['code'] == 200:
+                return True
+        return False

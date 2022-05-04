@@ -3,7 +3,8 @@ from itertools import chain
 from pathlib import Path
 from typing import List
 
-from .JsonDataFile import json_data_file
+from .Record import record
+from .util import diff_list
 
 
 class Depository():
@@ -20,10 +21,8 @@ class Depository():
         return songs_path
 
     def diff(self) -> None:
-        songs_now = set(self.local_songs_path)
-        songs_before = set(json_data_file.data['depository']['last_recorded'])
-        json_data_file.data['depository']['last_recorded'] = list(songs_now)
+        diff = diff_list(record['depository']['old'], self.local_songs_path)
+        record['depository']['old'] = self.local_songs_path
 
-        songs_deleted = songs_before - songs_now
-        temp = set(json_data_file.data['netease']['waitting_be_deleted'])
-        json_data_file.data['netease']['waitting_be_deleted'] += list(songs_deleted - temp)
+        record['netease']['deleting'] += diff_list(record['netease']['deleting'],diff['-'])['+']
+

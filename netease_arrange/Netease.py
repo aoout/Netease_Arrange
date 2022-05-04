@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import List
 
 from .Api import Api
-from .JsonDataFile import json_data_file
-from .constant import constant
+from .Paths import paths
+from .Record import record
+from .util import diff_list
 
 
 class Netease:
@@ -15,7 +16,7 @@ class Netease:
     def __init__(self, download_path: Path or str, account: str, password: str) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
-        if constant.converter_path.exists():
+        if paths['converter'].exists():
             self._convert()
         self._api = Api(account, password)
 
@@ -23,14 +24,15 @@ class Netease:
         self.vip_songs_path = self.download_path / 'VipSongsDownload'
         for vs in self.vip_songs_path.rglob('*.ncm'):
             if vs not in self.local_songs_name:
-                os.system(f'{constant.converter_path} "{vs}"')
+                os.system(f'{paths["converter"]} "{vs}"')
 
     @cached_property
     def online_songs_path(self) -> List[str]:
         songs_path = []
-        for pl_name, pl_songs in self._api.data.playlists.items():
+        for pl_name, pl_songs in self._api.data.items():
             for sg in pl_songs:
-                songs_path.append(str(Path(pl_name, ','.join([ar.name for ar in sg.artists]) + ' - ' + sg.name)))
+                songs_path.append(
+                    str(Path(pl_name, ','.join([ar['name'] for ar in sg['artists']]) + ' - ' + sg['name'])))
         return songs_path
 
     @cached_property
@@ -41,43 +43,36 @@ class Netease:
         return songs_name
 
     def sync(self, depository: "Depository"):
-        online_songs_now = set(self.online_songs_path)
-        online_songs_before = set(json_data_file.data['netease']['last_recorded'])
-        online_songs_added = online_songs_now - online_songs_before
-        online_songs_deleted = online_songs_before - online_songs_now
-        json_data_file.data['netease']['last_recorded'] = list(online_songs_now)
+        diff = diff_list(record['netease']['old'], self.online_songs_path)
+        record['netease']['old'] = self.online_songs_path
 
-        songs_waitting_resources = set(json_data_file.data['netease']['waitting_resources'])
         songs_to_copy = set()
-        for sp in (songs_waitting_resources | online_songs_added):
-            sp = Path(sp)
-            if sp.stem in self.local_songs_name:
-                songs_to_copy.add(str(sp))
+        for i in (set(record['netease']['block']) | set(diff['+'])):
+            i = Path(i)
+            if i.stem in self.local_songs_name:
+                songs_to_copy.add(str(i))
 
-        songs_waitting_resources = (songs_waitting_resources | online_songs_added) - songs_to_copy
+        record['netease']['block'] = list((set(record['netease']['block']) | set(diff['+'])) - songs_to_copy)
 
-        json_data_file.data['netease']['waitting_resources'] = list(songs_waitting_resources)
-
-        for sp in songs_to_copy:
-            sp = Path(sp)
+        for i in songs_to_copy:
+            i = Path(i)
             for suffix in ('.mp3', '.flac'):
-                if (self.download_path / Path(sp.name).with_suffix(suffix)).exists():
-                    src = self.download_path / Path(sp.name).with_suffix(suffix)
-                    dst = depository.path / sp.with_suffix(suffix)
+                if (self.download_path / Path(i.name).with_suffix(suffix)).exists():
+                    src = self.download_path / Path(i.name).with_suffix(suffix)
+                    dst = depository.path / i.with_suffix(suffix)
                     if not dst.parent.exists():
                         dst.parent.mkdir(parents=True)
                     shutil.copy(src, dst)
 
-        songs_waitting_be_deleted = set(json_data_file.data['netease']['waitting_be_deleted'])
-        songs_be_deleted = online_songs_deleted & songs_waitting_be_deleted
-        songs_to_delete = online_songs_deleted - songs_waitting_be_deleted
-        temp = set(json_data_file.data['netease']['last_deleted'])
-        json_data_file.data['netease']['waitting_be_deleted'] = list(
-            songs_waitting_be_deleted - songs_be_deleted - temp)
-        json_data_file.data['netease']['last_deleted'] = list(songs_to_delete)
+        songs_be_deleted = set(diff['-']) & set(record['netease']['deleting'])
+        songs_to_delete = set(diff['-']) - set(record['netease']['deleting'])
 
-        for sp in songs_to_delete:
-            sp = Path(sp)
+        record['netease']['deleting'] = list(
+            set(record['netease']['deleting']) - songs_be_deleted - set(record['netease']['last_deleted']))
+        record['netease']['last_deleted'] = list(songs_to_delete)
+
+        for i in songs_to_delete:
+            i = Path(i)
             for suffix in ('.mp3', '.flac'):
-                if (depository.path / sp.with_suffix(suffix)).exists():
-                    os.remove(depository.path / sp.with_suffix(suffix))
+                if (depository.path / i.with_suffix(suffix)).exists():
+                    os.remove(depository.path / i.with_suffix(suffix))
