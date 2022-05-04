@@ -10,9 +10,9 @@ class Api:
     def __init__(self, account: str, password: str) -> None:
         self.data = DataDict(paths['api_data'], dict(), 'utf-8', False)
         self.data.read()
-        self._login(account, password)
-        self.data.update(self._merge_playlists(self.data, *self.get_playlists()))
-        self.data.write()
+        if self._login(account, password):
+            self.data.update(self._merge_playlists(self.data, *self.get_playlists()))
+            self.data.write()
 
     def _login(self, account: str, password: str) -> bool:
         if r := RawApi.login(account, password):
@@ -25,7 +25,7 @@ class Api:
         finished = True
         if r := RawApi.get_playlists(self.user_id):
             for playlist in r.json()['playlist']:
-                if songs := self.get_songs_from_playlist(playlist['id']):
+                if (songs := self.get_songs_from_playlist(playlist['id'])) is not None:
                     playlists[playlist['name']] = songs
                 else:
                     finished = False
