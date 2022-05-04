@@ -3,13 +3,14 @@
 **Netease_Arrange** helps you organize your music files from netease.
 
 ```python
->>> from netease_arrange import Netease, Depository
+from netease_arrange import Sync
 
->>> depository = Depository(path='the positon you want to store musics in.')
->>> depository.diff()
-
->>> netease = Netease(download_path='neteas_path', account='account', password='password')
->>> netease.sync(depository=depository)
+Sync(
+    account='account',
+    password='password',
+    depository='the positon you want to store musics in',
+    netease_download_path='...'
+)
 ```
 
 Netease_Arrange allows you to copy your downloaded music files from netease to a hierarchical, clean path.
