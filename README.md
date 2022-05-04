@@ -27,7 +27,7 @@ As the program is still too unstable, it cannot be published to pypi.org.
 
 # RoadMap
 
-- [ ] Automatically complete the transfer of membership format.
+- [x] Automatically complete the transfer of membership format.
 - [ ] Using the meta information and name of the playlist, create a rule to determine if it should be considered.
 - [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists
 

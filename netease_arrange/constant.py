@@ -10,6 +10,7 @@ class Constant:
         self.cookies_path = self.base_path / '.cookies'
         self.api_data_path = self.base_path / '.api_data'
         self.data_path = self.base_path / '.data'
+        self.converter_path = self.base_path.parent / 'converter.exe'
 
         if not self.base_path.exists():
             self.base_path.mkdir()

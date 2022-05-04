@@ -7,6 +7,7 @@ from typing import List
 
 from .Api import Api
 from .JsonDataFile import json_data_file
+from .constant import constant
 
 
 class Netease:
@@ -14,8 +15,14 @@ class Netease:
     def __init__(self, download_path: Path or str, account: str, password: str) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
-
+        self._convert()
         self._api = Api(account, password)
+
+    def _convert(self) -> None:
+        self.vip_songs_path = self.download_path / 'VipSongsDownload'
+        for vs in self.vip_songs_path.rglob('*.ncm'):
+            if vs not in self.local_songs_name:
+                os.system(f'{constant.converter_path} "{vs}"')
 
     @cached_property
     def online_songs_path(self) -> List[str]:
