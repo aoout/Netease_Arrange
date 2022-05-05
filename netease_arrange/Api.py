@@ -1,4 +1,5 @@
-from typing import List, Dict, Optional
+import random
+from typing import List, Dict
 
 from .Paths import paths
 from .raw_api import RawApi
@@ -10,44 +11,34 @@ class Api:
     def __init__(self, account: str, password: str) -> None:
         self.data = DataDict(paths['api_data'], dict(), 'utf-8', False)
         self.data.read()
-        if self._login(account, password):
-            self.data.update(self._merge_playlists(self.data, *self.get_playlists()))
-            self.data.write()
+        self.data.update(self._merge_playlists(self.data, *self._playlists(RawApi.login_cellphone(account, password))))
+        self.data.write()
 
-    def _login(self, account: str, password: str) -> bool:
-        if r := RawApi.login(account, password):
-            self.user_id = r.json()['account']['id']
-            return True
-        return False
-
-    def get_playlists(self) -> (bool, Dict[str, List]):
-        playlists = dict()
+    def _playlists(self, user_id: int) -> (bool, Dict[str, List]):
         finished = True
-        if r := RawApi.get_playlists(self.user_id):
-            for playlist in r.json()['playlist']:
-                if (songs := self.get_songs_from_playlist(playlist['id'])) is not None:
-                    playlists[playlist['name']] = songs
-                else:
-                    finished = False
-                    break
-        return finished, playlists
-
-    def get_songs_from_playlist(self, playlist_id: int) -> Optional[List[Dict]]:
-        songs = list()
-        if r := RawApi.get_songs_from_playlist(playlist_id):
-            for song in r.json()['playlist']['tracks']:
-                song_ = dict(
-                    name=song['name'],
-                    id=song['id'],
-                    artists=[
-                        dict(
+        playlists = dict()
+        raw_user_playlist = RawApi.user_playlist(user_id)
+        random.shuffle(raw_user_playlist)
+        for raw_playlist in raw_user_playlist:
+            songs = list()
+            if playlist_detail := RawApi.playlist_detail(raw_playlist['id']):
+                songs_id = [x['id'] for x in playlist_detail]
+                raw_songs = RawApi.song_detail(songs_id)
+                for raw_song in raw_songs:
+                    song = dict(
+                        name=raw_song['name'],
+                        id=raw_song['id'],
+                        artists=[dict(
                             name=artist['name'],
                             id=artist['id']
-                        ) for artist in song['ar']
-                    ]
-                )
-                songs.append(song_)
-            return songs
+                        ) for artist in raw_song['ar']]
+                    )
+                    songs.append(song)
+            else:
+                finished = False
+                break
+            playlists[raw_playlist['name']] = songs
+        return finished, playlists
 
     @staticmethod
     def _merge_playlists(playlists_before: Dict, finished: bool, playlists_now: Dict) -> Dict:

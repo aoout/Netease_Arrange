@@ -1,6 +1,8 @@
+import json
 import platform
 from http.cookiejar import Cookie, LWPCookieJar
-from typing import Optional
+from typing import Callable
+from typing import List
 
 import requests
 from requests.models import Response
@@ -19,16 +21,23 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 11_1_0) AppleWebKit/537.36 (KHTML, like Gecko) "
                   "Chrome/88.0.4324.87 Safari/537.36",
 }
-BASE_URL = 'http://music.163.com/weapi/'
-LOGIN_URL = BASE_URL + 'login/cellphone'
-PLAYLIST_URL = BASE_URL + 'user/playlist'
-SONGS_URL = BASE_URL + 'v3/playlist/detail'
 
 
 class RawApi:
 
+    def register_url(url: str):
+        def outwrapper(func):
+            def wrapper(*args, **kwargs):
+                return func(url='http://music.163.com/weapi/' + url, *args, **kwargs)
+
+            return wrapper
+
+        return outwrapper
+
     @classmethod
-    def login(cls, account: str, password: str) -> Optional[Response]:
+    @register_url('login/cellphone')
+    def login_cellphone(cls, account: str, password: str,
+                        hook: Callable = lambda response: response.json()['account']['id'], url: str = ''):
 
         cookie_jar = LWPCookieJar(paths['cookies'])
         cookie_jar.load()
@@ -43,39 +52,34 @@ class RawApi:
 
         user_info = dict(phone=account, password=encrypted_password(password))
         params = dict(user_info, coutrycode='86', rememberLogin='true')
-        r = cls._request('post', LOGIN_URL, params, {"os": "pc"})
+        r = cls._request('post', url, params, {"os": "pc"})
         cls._session.cookies.save()
-        if RawApi.request_vaild(r):
-            return r
-        print('Login request failed')
-        print(f'{r.status_code}:{r.text}')
-        print(r.url)
-        return None
+        return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
-    def get_playlists(cls, user_id: str) -> Optional[Response]:
+    @register_url('user/playlist')
+    def user_playlist(cls, user_id: str,
+                      hook: Callable = lambda response: response.json()['playlist'], url: str = ''):
         params = dict(uid=user_id, offset=0, limit=50)
-        r = cls._request('post', PLAYLIST_URL, params)
-        if RawApi.request_vaild(r):
-            return r
-
-        print('Playlists request failed')
-        print(f'{r.status_code}:{r.text}')
-        print(r.url)
-        return None
+        r = cls._request('post', url, params)
+        return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
-    def get_songs_from_playlist(cls, playlist_id: int) -> Optional[Response]:
+    @register_url('v3/playlist/detail')
+    def playlist_detail(cls, playlist_id: int,
+                        hook: Callable = lambda response: response.json()['playlist']['trackIds'], url: str = ''):
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
-        r = cls._request('post', SONGS_URL, params, dict(os=platform.system()))
-        if RawApi.request_vaild(r):
-            return r
+        r = cls._request('post', url, params, dict(os=platform.system()))
+        return hook(r) if RawApi.request_vaild(r) else None
 
-        print('Songs requests failed')
-        print(f'{r.status_code}:{r.text}')
-        print(r.url)
-        return None
+    @classmethod
+    @register_url('v3/song/detail')
+    def song_detail(cls, songs_id: List[int],
+                    hook: Callable = lambda response: response.json()['songs'],url: str='' ):
+        params = dict(c=json.dumps([{"id": _id} for _id in songs_id]), ids=json.dumps(songs_id))
+        r = cls._request('post', url, params)
+        return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
     def _request(cls, method: str, url: str, params: dict, custom_cookies: dict = {}) -> Response:
@@ -107,4 +111,5 @@ class RawApi:
         if response.status_code == 200:
             if 'code' not in response.json() or response.json()['code'] == 200:
                 return True
+        print(f'the request to {response.url} failed.')
         return False
