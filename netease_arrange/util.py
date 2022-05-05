@@ -39,3 +39,8 @@ def diff_list(a: list, b: list) -> dict:
         "+": list(b_set - a_set),
         "-": list(a_set - b_set)
     }
+
+
+def to_pathname(path: str) -> str:
+    return ''.join([c for c in path if c not in ['\\', '/', ':', '*', '?', '"', '<', '>', '|']])
+

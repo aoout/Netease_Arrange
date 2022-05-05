@@ -108,8 +108,11 @@ class RawApi:
 
     @staticmethod
     def request_vaild(response: Response) -> bool:
-        if response.status_code == 200:
-            if 'code' not in response.json() or response.json()['code'] == 200:
-                return True
-        print(f'the request to {response.url} failed.')
-        return False
+        try:
+            if response.status_code == 200:
+                if 'code' not in response.json() or response.json()['code'] == 200:
+                    return True
+            print(f'the request to {response.url} failed.')
+            return False
+        except:
+            return False
