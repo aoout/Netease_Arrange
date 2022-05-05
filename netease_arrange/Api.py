@@ -3,7 +3,7 @@ from typing import List, Dict
 
 from .Paths import paths
 from .raw_api import RawApi
-from .util import DataDict, diff_dict,to_pathname
+from .util import DataDict, diff_dict, to_pathname
 
 
 class Api:
@@ -23,18 +23,21 @@ class Api:
             songs = list()
             if playlist_detail := RawApi.playlist_detail(raw_playlist['id']):
                 songs_id = [x['id'] for x in playlist_detail]
-                raw_songs = RawApi.song_detail(songs_id)
-                for raw_song in raw_songs:
-                    song = dict(
-                        name=to_pathname(raw_song['name']),
-                        id=raw_song['id'],
-                        artists=[dict(
-                            name=artist['name'],
-                            id=artist['id']
-                        ) for artist in raw_song['ar']]
-                    )
-                    songs.append(song)
-                print(f'the data about {raw_playlist["name"]} have updated.')
+                if raw_songs := RawApi.song_detail(songs_id):
+                    for raw_song in raw_songs:
+                        song = dict(
+                            name=to_pathname(raw_song['name']),
+                            id=raw_song['id'],
+                            artists=[dict(
+                                name=artist['name'],
+                                id=artist['id']
+                            ) for artist in raw_song['ar']]
+                        )
+                        songs.append(song)
+                    print(f'the data about {raw_playlist["name"]} have updated.')
+                else:
+                    return False, playlists
+
             else:
                 finished = False
                 break
