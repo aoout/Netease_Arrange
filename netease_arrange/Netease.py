@@ -32,7 +32,8 @@ class Netease:
         songs_path = []
         for playlist_name, songs in self.api.data.items():
             for song_name, song in songs.items():
-                file_name = ','.join([ar['name'] for ar in song['artists']]) + ' - ' + song_name
+                file_name = ','.join(
+                    [ar['name'] for ar in song['artists']]) + ' - ' + song_name
                 songs_path.append(str(Path(playlist_name, file_name)))
 
         return songs_path
@@ -46,33 +47,40 @@ class Netease:
 
     def sync(self, depository: "Depository"):
         diff = diff_list(record['netease']['old'], self.online_songs_path)
+        self.assign(depository, diff)
+
+        self.delete(depository, diff)
+
+    def assign(self, depository, diff):
+
         record['netease']['old'] = self.online_songs_path
 
-        songs_to_copy = set()
-        for i in (set(record['netease']['block']) | set(diff['+'])):
-            i = Path(i)
-            if i.stem in self.local_songs_name:
-                songs_to_copy.add(str(i))
+        songs_to_assign = set(record['netease']['block']) | set(diff['+'])
+        songs_to_assign_actually = set(
+            [song for song in songs_to_assign if self.accessible(song)])
+        record['netease']['block'] = list(
+            songs_to_assign-songs_to_assign_actually)
 
-        record['netease']['block'] = list((set(record['netease']['block']) | set(diff['+'])) - songs_to_copy)
-
-        for i in songs_to_copy:
-            i = Path(i)
+        for song in songs_to_assign_actually:
+            song = Path(song)
             for suffix in ('.mp3', '.flac'):
-                if (self.download_path / Path(i.name).with_suffix(suffix)).exists():
-                    src = self.download_path / Path(i.name).with_suffix(suffix)
-                    dst = depository.path / i.with_suffix(suffix)
+                if (src := (self.download_path / Path(song.name).with_suffix(suffix))).exists():
+
+                    dst = depository.path / song.with_suffix(suffix)
                     if not dst.parent.exists():
                         dst.parent.mkdir(parents=True)
                     shutil.copy(src, dst)
 
+    def accessible(self, online_song_path: str) -> bool:
+        online_song_path = Path(online_song_path)
+        return online_song_path.stem in self.local_songs_name
+
+    def delete(self, depository, diff):
         songs_be_deleted = set(diff['-']) & set(record['netease']['deleting'])
         songs_to_delete = set(diff['-']) - set(record['netease']['deleting'])
-
         record['netease']['deleting'] = list(
             set(record['netease']['deleting']) - songs_be_deleted - set(record['netease']['last_deleted']))
         record['netease']['last_deleted'] = list(songs_to_delete)
-
         for i in songs_to_delete:
             i = Path(i)
             for suffix in ('.mp3', '.flac'):
