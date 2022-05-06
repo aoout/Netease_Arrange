@@ -18,7 +18,7 @@ class Netease:
         self.download_path = download_path
         if paths['converter'].exists():
             self._convert()
-        self._api = Api(account, password)
+        self.api = Api(account, password)
 
     def _convert(self) -> None:
         self.vip_songs_path = self.download_path / 'VipSongsDownload'
@@ -28,11 +28,13 @@ class Netease:
 
     @cached_property
     def online_songs_path(self) -> List[str]:
+        self.api.update()
         songs_path = []
-        for pl_name, pl_songs in self._api.data.items():
-            for sg in pl_songs:
-                songs_path.append(
-                    str(Path(pl_name, ','.join([ar['name'] for ar in sg['artists']]) + ' - ' + sg['name'])))
+        for playlist_name, songs in self.api.data.items():
+            for song_name, song in songs.items():
+                file_name = ','.join([ar['name'] for ar in song['artists']]) + ' - ' + song_name
+                songs_path.append(str(Path(playlist_name, file_name)))
+
         return songs_path
 
     @cached_property

@@ -28,6 +28,10 @@ As the program is still too unstable, it cannot be published to pypi.org.
 # RoadMap
 
 - [x] Automatically complete the transfer of membership format.
+
+Put the exe file with transcoding function into `.netease_arrange` folder under the user folder, and rename it to `converter.exe`.
+This project does not directly provide transcoding function.
+
 - [ ] Using the meta information and name of the playlist, create a rule to determine if it should be considered.
 - [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists
 
