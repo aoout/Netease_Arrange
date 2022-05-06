@@ -9,6 +9,7 @@ from requests.models import Response
 
 from .decrypt import encrypted_password, encrypted_request
 from ..Paths import paths
+from ..util import is_json, split_list
 
 HEADERS = {
     "Accept": "*/*",
@@ -76,10 +77,17 @@ class RawApi:
     @classmethod
     @register_url('v3/song/detail')
     def song_detail(cls, songs_id: List[int],
-                    hook: Callable = lambda response: response.json()['songs'],url: str='' ):
+                    hook: Callable = lambda response: response.json()['songs'], url: str = ''):
         params = dict(c=json.dumps([{"id": _id} for _id in songs_id]), ids=json.dumps(songs_id))
         r = cls._request('post', url, params)
         return hook(r) if RawApi.request_vaild(r) else None
+
+    @classmethod
+    def song_detail_h(cls, songs_id: List[int]):
+        result = list()
+        for i in split_list(songs_id, 1000):
+            result.extend(RawApi.song_detail(i))
+        return result
 
     @classmethod
     def _request(cls, method: str, url: str, params: dict, custom_cookies: dict = {}) -> Response:
@@ -108,11 +116,10 @@ class RawApi:
 
     @staticmethod
     def request_vaild(response: Response) -> bool:
-        try:
-            if response.status_code == 200:
+        if response.status_code == 200:
+            if is_json(response.text):
                 if 'code' not in response.json() or response.json()['code'] == 200:
                     return True
-            print(f'the request to {response.url} failed.')
-            return False
-        except:
-            return False
+        print(f'the request to {response.url} failed.')
+        print(f'{response.text}')
+        return False

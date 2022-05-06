@@ -1,7 +1,7 @@
 import json
 from collections import UserDict
 from pathlib import Path
-from typing import Optional
+from typing import Optional,List
 
 
 class DataDict(UserDict):
@@ -43,4 +43,23 @@ def diff_list(a: list, b: list) -> dict:
 
 def to_pathname(path: str) -> str:
     return ''.join([c for c in path if c not in ['\\', '/', ':', '*', '?', '"', '<', '>', '|']])
+
+
+def is_json(string:str)->bool:
+    try:
+        json.loads(string)
+        return True
+    except:
+        return False
+
+def split_list(list_:list, max_length:int)->List[list]:
+    result = list()
+    i = 0
+    while i<len(list_):
+        result.append( list_[i:i+max_length])
+        i+=max_length
+    return result
+
+
+
 

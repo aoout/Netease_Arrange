@@ -23,7 +23,7 @@ class Api:
             songs = list()
             if playlist_detail := RawApi.playlist_detail(raw_playlist['id']):
                 songs_id = [x['id'] for x in playlist_detail]
-                if raw_songs := RawApi.song_detail(songs_id):
+                if raw_songs := RawApi.song_detail_h(songs_id):
                     for raw_song in raw_songs:
                         song = dict(
                             name=to_pathname(raw_song['name']),
