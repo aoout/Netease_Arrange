@@ -32,8 +32,11 @@ As the program is still too unstable, it cannot be published to pypi.org.
 Put the exe file with transcoding function into `.netease_arrange` folder under the user folder, and rename it to `converter.exe`.
 This project does not directly provide transcoding function.
 
+- [ ] Become able to recognize different song title formats.
+
+Now, You must follow the default song title format of NetEase Cloud Music Download.
 - [ ] Using the meta information and name of the playlist, create a rule to determine if it should be considered.
-- [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists
+- [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists.
 
 
 
