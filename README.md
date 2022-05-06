@@ -19,6 +19,8 @@ This process is a bit like synchronization.
 If a new song be added to netease playlists, then it will be copy to the path when you run the program next time.
 If a song be deleted, also similar results.
 
+For additional information, be sure to look at the roadmap.
+
 # Installation
 
 get the package from the release page, and install it with the pip.
