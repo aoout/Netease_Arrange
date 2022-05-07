@@ -19,6 +19,8 @@ This process is a bit like synchronization.
 If a new song be added to netease playlists, then it will be copy to the path when you run the program next time.
 If a song be deleted, also similar results.
 
+For additional information, be sure to look at the roadmap.
+
 # Installation
 
 get the package from the release page, and install it with the pip.
@@ -32,8 +34,11 @@ As the program is still too unstable, it cannot be published to pypi.org.
 Put the exe file with transcoding function into `.netease_arrange` folder under the user folder, and rename it to `converter.exe`.
 This project does not directly provide transcoding function.
 
+- [ ] Become able to recognize different song title formats.
+
+Now, You must follow the default song title format of NetEase Cloud Music Download.
 - [ ] Using the meta information and name of the playlist, create a rule to determine if it should be considered.
-- [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists
+- [ ] Using the meta information and name of the playlist, create a rule to add hierarchy beyond playlists.
 
 
 
