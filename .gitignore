@@ -2,3 +2,4 @@ dist
 main.py
 .idea
 *.pyc
+*.code-workspace

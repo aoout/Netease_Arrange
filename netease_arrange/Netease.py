@@ -32,8 +32,8 @@ class Netease:
         songs_path = []
         for playlist_name, songs in self.api.data.items():
             for song_name, song in songs.items():
-                file_name = ','.join(
-                    [ar['name'] for ar in song['artists']]) + ' - ' + song_name
+                file_name = song_name+ ' - '+ ','.join(
+                    [ar['name'] for ar in song['artists']]) 
                 songs_path.append(str(Path(playlist_name, file_name)))
 
         return songs_path
