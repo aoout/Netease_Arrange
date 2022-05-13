@@ -28,7 +28,7 @@ class Depository():
         record['netease']['deleting'] += diff_list(
             record['netease']['deleting'], diff['-'])['+']
 
-    def convert_name_format(self) -> None:  # todo:进行测试
+    def convert_name_format(self) -> None: 
         for song in self.local_songs_path:
             for suffix in ('.mp3', '.flac'):
                 if (path := self.path / Path(song).with_suffix(suffix)).exists():

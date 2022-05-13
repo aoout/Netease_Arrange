@@ -14,7 +14,8 @@ def Sync(account: str or int,
     paths.init(account)
 
     from .Netease import Netease
-    netease = Netease(netease_download_path, account, password,folders_prefix)
+    netease = Netease(netease_download_path, folders_prefix)
+    netease.login(account,password)
     if playlist_filter:
         netease.api.playlist_filter = playlist_filter
 

@@ -38,9 +38,10 @@ class Netease:
                 file_name = song_name + ' - ' + ','.join(
                     [ar['name'] for ar in song['artists']])
                 for prefix in self.folders_prefix:
-                    if playlist_name.startwith(f'{prefix},'):
+                    if playlist_name.startswith(f'{prefix}，'):
+                        print(playlist_name)
                         parent_path = Path(
-                            *playlist_name.split(',', maxsplit=1))
+                            *playlist_name.split('，', maxsplit=1))
                         break
                 else:
                     parent_path = Path(playlist_name)
@@ -67,10 +68,10 @@ class Netease:
         from .Record import record
         record['netease']['old'] = self.online_songs_path
 
-        songs_to_assign = set(record['netease']['block']) | set(diff['+'])
+        songs_to_assign = set(record['netease']['unavailable']) | set(diff['+'])
         songs_to_assign_actually = set(
             [song for song in songs_to_assign if self.accessible(song)])
-        record['netease']['block'] = list(
+        record['netease']['unavailable'] = list(
             songs_to_assign-songs_to_assign_actually)
 
         for song in songs_to_assign_actually:
@@ -100,7 +101,7 @@ class Netease:
                 if (depository.path / i.with_suffix(suffix)).exists():
                     os.remove(depository.path / i.with_suffix(suffix))
 
-    def convert_name_format(self) -> None:  # 经过测试
+    def convert_name_format(self) -> None:
         for song in self.local_songs_name:
             for suffix in ('.mp3', '.flac'):
                 if (path := self.download_path / Path(song).with_suffix(suffix)).exists():

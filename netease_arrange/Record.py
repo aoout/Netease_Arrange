@@ -9,9 +9,10 @@ class Record(DataDict):
                          default_value=dict(
                              netease=dict(
                                  old=list(),
-                                 block=list(),
+                                 unavailable=list(),
                                  deleting=list(),
-                                 last_deleted=list()
+                                 last_deleted=list(),
+                                 invalid = list()
                              ),
                              depository=dict(
                                  old=list()
