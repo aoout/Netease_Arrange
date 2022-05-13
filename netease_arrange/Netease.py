@@ -39,7 +39,6 @@ class Netease:
                     [ar['name'] for ar in song['artists']])
                 for prefix in self.folders_prefix:
                     if playlist_name.startswith(f'{prefix}，'):
-                        print(playlist_name)
                         parent_path = Path(
                             *playlist_name.split('，', maxsplit=1))
                         break

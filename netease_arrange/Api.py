@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional,Tuple
 
 from .Paths import paths
 from .raw_api import RawApi
@@ -19,17 +19,18 @@ class Api:
         self.data.update(self.merge_playlists(self.data, *self.request_result(self.user_id)))
         self.data.write()
 
-    def request_result(self, user_id: int) -> (bool, Dict):
-        result = dict()
+    def request_result(self, user_id: int) -> Tuple[list, dict]:
+        finished_part = dict()
         playlists = self.playlists(user_id)
         for playlist in playlists.values():
             if songs := self.songs(playlist):
-                result[playlist['name']] = songs
+                finished_part[playlist['name']] = songs
             else:
-                return False, result
-        return True, result
+                break
+        return playlists.keys(), finished_part 
 
     def playlists(self, user_id: int) -> Dict:
+        '''该方法没有调用受到限制的请求'''
         playlists = dict()
         raw_playlists = RawApi.user_playlist(user_id)
         for raw_playlist in raw_playlists:
@@ -45,6 +46,7 @@ class Api:
         return playlists
 
     def songs(self, playlist: Dict) -> Optional[Dict]:
+        '''该方法调用了受到限制的请求'''
         songs = dict()
         if playlist_detail := RawApi.playlist_detail(playlist['id']):
             songs_id = [song_['id'] for song_ in playlist_detail]
@@ -63,16 +65,18 @@ class Api:
                 return songs
 
     @staticmethod
-    def merge_playlists(playlists_before: Dict, finished: bool, playlists_now: Dict) -> Dict:
+    def merge_playlists(playlists_before: Dict, playlists_name: list, finished_part: dict) -> Dict:
 
-        diff = diff_dict(playlists_before, playlists_now)
+        diff = diff_dict(playlists_before, finished_part)
         for key in diff['+']:
             playlists_before[key] = list()
-        if finished:
-            for key in diff['-']:
+
+        for key in playlists_before.copy().keys():
+            if key not in playlists_name:
                 del playlists_before[key]
 
-        for playlist_name, songs in playlists_now.items():
-            playlists_before[playlist_name] = playlists_now[playlist_name]
+
+        for playlist_name, songs in finished_part.items():
+            playlists_before[playlist_name] = finished_part[playlist_name]
 
         return playlists_before

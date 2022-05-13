@@ -39,7 +39,7 @@ class RawApi:
     @register_url('login/cellphone')
     def login_cellphone(cls, account: str, password: str,
                         hook: Callable = lambda response: response.json()['account']['id'], url: str = ''):
-
+        '''这个请求受到了限制'''
         cookie_jar = LWPCookieJar(paths['cookies'])
         cookie_jar.load()
 
@@ -61,6 +61,7 @@ class RawApi:
     @register_url('user/playlist')
     def user_playlist(cls, user_id: str,
                       hook: Callable = lambda response: response.json()['playlist'], url: str = ''):
+        '''这个请求没有受到限制'''
         params = dict(uid=user_id, offset=0, limit=50)
         r = cls._request('post', url, params)
         return hook(r) if RawApi.request_vaild(r) else None
@@ -69,6 +70,7 @@ class RawApi:
     @register_url('v3/playlist/detail')
     def playlist_detail(cls, playlist_id: int,
                         hook: Callable = lambda response: response.json()['playlist']['trackIds'], url: str = ''):
+        '''这个请求受到了限制'''
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
         r = cls._request('post', url, params, dict(os=platform.system()))
@@ -78,12 +80,14 @@ class RawApi:
     @register_url('v3/song/detail')
     def song_detail(cls, songs_id: List[int],
                     hook: Callable = lambda response: response.json()['songs'], url: str = ''):
+        '''这个请求受到了限制'''
         params = dict(c=json.dumps([{"id": _id} for _id in songs_id]), ids=json.dumps(songs_id))
         r = cls._request('post', url, params)
         return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
     def song_detail_h(cls, songs_id: List[int]):
+        '''该方法调用了受到限制的请求'''
         result = list()
         for i in split_list(songs_id, 1000):
             result.extend(RawApi.song_detail(i))
