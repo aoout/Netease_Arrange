@@ -1,27 +1,28 @@
+# pylint:disable = missing-module-docstring
 from collections import UserDict
 from pathlib import Path
+from .util import init_lwpcookiejar
 
 
 class Paths(UserDict):
-    def __init__(self) -> None:
-        self.home = Path.home() / '.netease_arrange'
-
-        super().__init__(dict(
-            cookies=self.home / '.cookies',
-            api_data=self.home / '.api_data',
-            data=self.home / '.data',
-            converter=self.home.parent / 'converter.exe'
-        ))
+    '''
+    manager all the path that project need to use.
+    '''
 
     def init(self, account: str) -> None:
-        (self.home / account).mkdir(parents=True, exist_ok=True)
-        for key, value in self.data.items():
-            if key != 'converter':
-                self.data[key] = value.parent / account / value.name
-                self.data[key].touch(exist_ok=True)
+        '''
+        according to account initialization, each account uses a different path.
+        '''
+
+        home = Path.home() / account / '.netease_arrange'
+        home.mkdir(exist_ok=True)
+        self.data['converter'] = home.parent / 'converter.exe'
+        for path in ['cookies', 'api_data', 'data']:
+            self.data[path] = home / '.'+path
+            self.data[path].mkdir(exist_ok=True)
 
         if not self.data['cookies'].stat().st_size:
-            self.data['cookies'].write_text('#LWP-Cookies-2.0\n')
+            init_lwpcookiejar(self.data['cookies'])
 
 
-paths = Paths()
+paths = Paths()  # implement singleton pattern.

@@ -6,6 +6,9 @@ from .util import DataDict, diff_dict, to_pathname
 
 
 class Api:
+    '''
+    
+    '''
 
     def __init__(self, account: str, password: str) -> None:
         self.account = account
@@ -15,11 +18,17 @@ class Api:
         self.playlist_filter = lambda playlist: True if playlist['subscribed'] == False else False
 
     def update(self) -> None:
+        '''
+        
+        '''
         self.user_id = RawApi.login_cellphone(self.account, self.password)
         self.data.update(self.merge_playlists(self.data, *self.request_result(self.user_id)))
         self.data.write()
 
     def request_result(self, user_id: int) -> Tuple[list, dict]:
+        '''
+        
+        '''
         finished_part = dict()
         playlists = self.playlists(user_id)
         for playlist in playlists.values():
@@ -39,7 +48,7 @@ class Api:
                 id=raw_playlist['id'],
                 subscribed=raw_playlist['subscribed'],
                 tags=raw_playlist['tags'],
-                songs=list()
+                songs=[]
             )
             if self.playlist_filter(playlist):
                 playlists[playlist['name']] = playlist
@@ -50,7 +59,7 @@ class Api:
         songs = dict()
         if playlist_detail := RawApi.playlist_detail(playlist['id']):
             songs_id = [song_['id'] for song_ in playlist_detail]
-            if raw_songs := RawApi.song_detail_h(songs_id):
+            if raw_songs := RawApi.song_detail_unlimited(songs_id):
                 for raw_song in raw_songs:
                     song = dict(
                         name=to_pathname(raw_song['name']),
@@ -66,10 +75,12 @@ class Api:
 
     @staticmethod
     def merge_playlists(playlists_before: Dict, playlists_name: list, finished_part: dict) -> Dict:
-
+        '''
+        
+        '''
         diff = diff_dict(playlists_before, finished_part)
         for key in diff['+']:
-            playlists_before[key] = list()
+            playlists_before[key] = []
 
         for key in playlists_before.copy().keys():
             if key not in playlists_name:

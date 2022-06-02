@@ -1,15 +1,19 @@
+'''
+log in to NetEase Cloud Music and send various requests.
+'''
+# pylint:disable = line-too-long
+
 import json
 import platform
 from http.cookiejar import Cookie, LWPCookieJar
-from typing import Callable
-from typing import List
+from typing import Callable, List, Optional
 
 import requests
 from requests.models import Response
 
-from .decrypt import encrypted_password, encrypted_request
 from ..Paths import paths
 from ..util import is_json, split_list
+from .decrypt import encrypted_password, encrypted_request
 
 HEADERS = {
     "Accept": "*/*",
@@ -25,19 +29,47 @@ HEADERS = {
 
 
 class RawApi:
+    '''
+    log in to NetEase Cloud Music and send various requests.
+    each function that sends a request sets the hook parameter to process the obtained response.
+    these hooks are set to default values to get the most useful parts in general.
+    except for the "user_playlist" method, the requests sent by other methods that send requests seem to be limited by the frequency of access.
+    '''
 
     @classmethod
-    def geturl(cls,path:str)->str:
+    def geturl(cls, path: str) -> str:
+        '''
+        get requested url from path.
+        '''
         return 'http://music.163.com/weapi/' + path
 
     @classmethod
     def login_cellphone(cls, account: str, password: str,
-                        hook: Callable = lambda response: response.json()['account']['id'], url: str = ''):
-        '''这个请求受到了限制'''
-        cookie_jar = LWPCookieJar(paths['cookies'])
-        cookie_jar.load()
+                        hook: Optional[Callable] = lambda response: response.json()['account']['id']):
+        '''
+        log in to NetEase Cloud account with mobile phone number and password.
+        '''
+        hook = hook if hook else lambda _:_
+
+        RawApi._init_session()
+
+        user_info = dict(phone=account, password=encrypted_password(password))
+        params = dict(user_info, coutrycode='86', rememberLogin='true')
+        response = cls._request('post', RawApi.geturl(
+            'login/cellphone'), params, {"os": "pc"})
+        cls._session.cookies.save()
+        return hook(response) if RawApi._response_vaild(response) else None
+
+    @classmethod
+    def _init_session(cls) -> None:
+        '''
+        initialize sessions needed on subsequent requests, load cookies stored in files.
+        '''
 
         cls._session = requests.Session()
+
+        cookie_jar = LWPCookieJar(paths['cookies'])
+        cookie_jar.load()
 
         cls._session.cookies = cookie_jar
         for cookie in cookie_jar:
@@ -45,47 +77,63 @@ class RawApi:
                 cookie_jar.clear()
                 break
 
-        user_info = dict(phone=account, password=encrypted_password(password))
-        params = dict(user_info, coutrycode='86', rememberLogin='true')
-        r = cls._request('post', RawApi.geturl('login/cellphone'), params, {"os": "pc"})
-        cls._session.cookies.save()
-        return hook(r) if RawApi.request_vaild(r) else None
-
     @classmethod
     def user_playlist(cls, user_id: str,
-                      hook: Callable = lambda response: response.json()['playlist'], url: str = ''):
-        '''这个请求没有受到限制'''
+                      hook: Optional[Callable] = lambda response: response.json()['playlist']):
+        '''
+        get all the user's playlists.
+        '''
+        hook = hook if hook else lambda _:_ 
         params = dict(uid=user_id, offset=0, limit=50)
-        r = cls._request('post', RawApi.geturl('user/playlist'), params)
-        return hook(r) if RawApi.request_vaild(r) else None
+        response = cls._request('post', RawApi.geturl('user/playlist'), params)
+        return hook(response) if RawApi._response_vaild(response) else None
 
     @classmethod
     def playlist_detail(cls, playlist_id: int,
-                        hook: Callable = lambda response: response.json()['playlist']['trackIds'], url: str = ''):
-        '''这个请求受到了限制'''
+                        hook: Optional[Callable] = lambda response: response.json()['playlist']['trackIds']):
+        '''
+        get more detailed information through the id value of a playlist.
+        '''
+        hook = hook if hook else lambda _:_ 
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
-        r = cls._request('post', RawApi.geturl('v3/playlist/detail'), params, dict(os=platform.system()))
-        return hook(r) if RawApi.request_vaild(r) else None
+        response = cls._request('post', RawApi.geturl(
+            'v3/playlist/detail'), params, dict(os=platform.system()))
+        return hook(response) if RawApi._response_vaild(response) else None
 
     @classmethod
     def song_detail(cls, songs_id: List[int],
-                    hook: Callable = lambda response: response.json()['songs'], url: str = ''):
-        '''这个请求受到了限制'''
-        params = dict(c=json.dumps([{"id": _id} for _id in songs_id]), ids=json.dumps(songs_id))
-        r = cls._request('post', RawApi.geturl('v3/song/detail'), params)
-        return hook(r) if RawApi.request_vaild(r) else None
+                    hook: Optional[Callable] = lambda response: response.json()['songs']):
+        '''
+        get more detailed information through the ids value of songs.
+        only a maximum of 1000 ids can be passed in at a time.
+        '''
+        hook = hook if hook else lambda _:_ 
+        params = dict(c=json.dumps([{"id": _id}
+                      for _id in songs_id]), ids=json.dumps(songs_id))
+        response = cls._request(
+            'post', RawApi.geturl('v3/song/detail'), params)
+        return hook(response) if RawApi._response_vaild(response) else None
 
     @classmethod
-    def song_detail_h(cls, songs_id: List[int]):
-        '''该方法调用了受到限制的请求'''
-        result = list()
+    def song_detail_unlimited(cls, songs_id: List[int],
+                              hook: Optional[Callable] = lambda response: response.json()['songs']):
+        '''
+        get more detailed information through the ids value of songs.
+        an unlimited number of ids can be passed in.
+        '''
+        hook = hook if hook else lambda _:_ 
+        result = []
         for i in split_list(songs_id, 1000):
-            result.extend(RawApi.song_detail(i))
+            result.extend(RawApi.song_detail(i, hook))
         return result
 
     @classmethod
-    def _request(cls, method: str, url: str, params: dict, custom_cookies: dict = {}) -> Response:
+    def _request(cls, method: str, url: str, params: dict, custom_cookies: Optional[dict] = None) -> Response:
+        '''
+        send request. will encrypt parameters and modify some cookie values.
+        '''
+        custom_cookies = custom_cookies if custom_cookies else {}
         csrf_token = ""
         for cookie in cls._session.cookies:
             if cookie.name == "__csrf":
@@ -96,10 +144,12 @@ class RawApi:
             cookie = cls._make_cookie(key, value)
             cls._session.cookies.set_cookie(cookie)
 
-        if method == 'get':
+        if method == 'get':  # pylint:disable = no-else-return
             return cls._session.request(method=method, url=url, headers=HEADERS, params=encrypted_request(params))
         elif method == 'post':
             return cls._session.request(method=method, url=url, headers=HEADERS, data=encrypted_request(params))
+        else:
+            raise Exception('Incorrect parameter entered')
 
     @classmethod
     def _make_cookie(cls, name: str, value: str) -> Cookie:
@@ -110,7 +160,10 @@ class RawApi:
         )
 
     @staticmethod
-    def request_vaild(response: Response) -> bool:
+    def _response_vaild(response: Response) -> bool:
+        '''
+        retermine whether the received response is valid.
+        '''
         if response.status_code == 200:
             if is_json(response.text):
                 if 'code' not in response.json() or response.json()['code'] == 200:

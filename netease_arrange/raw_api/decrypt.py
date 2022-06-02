@@ -1,3 +1,10 @@
+'''
+The password required to log in to NetEase Cloud Music,
+and the parameters required for subsequent requests need to be encrypted.
+This module presents these encryption algorithms.
+'''
+
+# pylint:disable = missing-function-docstring,invalid-name
 import base64
 import binascii
 import json
