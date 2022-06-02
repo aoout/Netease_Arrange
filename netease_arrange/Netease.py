@@ -14,10 +14,10 @@ from .util import diff_list
 
 class Netease:
 
-    def __init__(self, download_path: Path or str, folders_prefix: List[str] = list()) -> None:
+    def __init__(self, download_path: Path or str, group_playlists_prefix: List[str] = list()) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
-        self.folders_prefix = folders_prefix
+        self.group_playlists_prefix = group_playlists_prefix
 
     def login(self, account: str, password: str) -> None:
         self.api = Api(account, password)
@@ -37,7 +37,7 @@ class Netease:
             for song_name, song in songs.items():
                 file_name = song_name + ' - ' + ','.join(
                     [ar['name'] for ar in song['artists']])
-                for prefix in self.folders_prefix:
+                for prefix in self.group_playlists_prefix:
                     if playlist_name.startswith(f'{prefix}，'):
                         parent_path = Path(
                             *playlist_name.split('，', maxsplit=1))

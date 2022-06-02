@@ -26,17 +26,11 @@ HEADERS = {
 
 class RawApi:
 
-    def register_url(url: str):
-        def outwrapper(func):
-            def wrapper(*args, **kwargs):
-                return func(url='http://music.163.com/weapi/' + url, *args, **kwargs)
-
-            return wrapper
-
-        return outwrapper
+    @classmethod
+    def geturl(cls,path:str)->str:
+        return 'http://music.163.com/weapi/' + path
 
     @classmethod
-    @register_url('login/cellphone')
     def login_cellphone(cls, account: str, password: str,
                         hook: Callable = lambda response: response.json()['account']['id'], url: str = ''):
         '''这个请求受到了限制'''
@@ -53,36 +47,33 @@ class RawApi:
 
         user_info = dict(phone=account, password=encrypted_password(password))
         params = dict(user_info, coutrycode='86', rememberLogin='true')
-        r = cls._request('post', url, params, {"os": "pc"})
+        r = cls._request('post', RawApi.geturl('login/cellphone'), params, {"os": "pc"})
         cls._session.cookies.save()
         return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
-    @register_url('user/playlist')
     def user_playlist(cls, user_id: str,
                       hook: Callable = lambda response: response.json()['playlist'], url: str = ''):
         '''这个请求没有受到限制'''
         params = dict(uid=user_id, offset=0, limit=50)
-        r = cls._request('post', url, params)
+        r = cls._request('post', RawApi.geturl('user/playlist'), params)
         return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
-    @register_url('v3/playlist/detail')
     def playlist_detail(cls, playlist_id: int,
                         hook: Callable = lambda response: response.json()['playlist']['trackIds'], url: str = ''):
         '''这个请求受到了限制'''
         params = dict(id=playlist_id, total='true',
                       limit=1000, n=1000, offset=0)
-        r = cls._request('post', url, params, dict(os=platform.system()))
+        r = cls._request('post', RawApi.geturl('v3/playlist/detail'), params, dict(os=platform.system()))
         return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
-    @register_url('v3/song/detail')
     def song_detail(cls, songs_id: List[int],
                     hook: Callable = lambda response: response.json()['songs'], url: str = ''):
         '''这个请求受到了限制'''
         params = dict(c=json.dumps([{"id": _id} for _id in songs_id]), ids=json.dumps(songs_id))
-        r = cls._request('post', url, params)
+        r = cls._request('post', RawApi.geturl('v3/song/detail'), params)
         return hook(r) if RawApi.request_vaild(r) else None
 
     @classmethod
