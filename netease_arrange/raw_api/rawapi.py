@@ -12,7 +12,7 @@ import requests
 from requests.models import Response
 
 from ..Paths import paths
-from ..util import is_json, split_list
+from ..util import is_json
 from .decrypt import encrypted_password, encrypted_request
 
 HEADERS = {
@@ -124,9 +124,12 @@ class RawApi:
         '''
         hook = hook if hook else lambda _:_ 
         result = []
-        for i in split_list(songs_id, 1000):
-            result.extend(RawApi.song_detail(i, hook))
+        while len(songs_id)>1000:
+            result.extend(RawApi.song_detail(songs_id[0:1000]))
+            del songs_id[0:1000]
+        result.extend(RawApi.song_detail(songs_id))
         return result
+
 
     @classmethod
     def _request(cls, method: str, url: str, params: dict, custom_cookies: Optional[dict] = None) -> Response:

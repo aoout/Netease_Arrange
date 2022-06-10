@@ -1,28 +1,36 @@
+# pylint:disable = missing-module-docstring
 import os
 import shutil
 from functools import cached_property
 from itertools import chain
 from pathlib import Path
-from tkinter import N
 from typing import List
 
 from .Api import Api
 from .Paths import paths
-
 from .util import diff_list
 
 
 class Netease:
-
-    def __init__(self, download_path: Path or str, group_playlists_prefix: List[str] = list()) -> None:
+    '''
+    manage online playlists on NetEase Cloud and their local downloaded files.
+    those online songs that have a corresponding downloaded file locally are said to be accessible.
+    '''
+    def __init__(self, download_path: Path or str, group_playlists_prefix: List[str] = None) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
-        self.group_playlists_prefix = group_playlists_prefix
+        self.group_playlists_prefix = group_playlists_prefix if group_playlists_prefix else []
 
     def login(self, account: str, password: str) -> None:
+        '''
+        log in to NetEase Cloud Music.
+        '''
         self.api = Api(account, password)
 
     def _convert(self) -> None:
+        '''
+        
+        '''
         if paths['converter']:
             self.vip_songs_path = self.download_path / 'VipSongsDownload'
             for vs in self.vip_songs_path.rglob('*.ncm'):
@@ -31,6 +39,9 @@ class Netease:
 
     @cached_property
     def online_songs_path(self) -> List[str]:
+        '''
+        
+        '''
         self.api.update()
         songs_path = []
         for playlist_name, songs in self.api.data.items():
@@ -51,25 +62,33 @@ class Netease:
 
     @cached_property
     def local_songs_name(self) -> List[str]:
+        '''
+        get name of all local music.
+        '''
         songs_name = []
         for sp in chain(*(self.download_path.rglob(f'*.{suffix}') for suffix in ['flac', 'mp3'])):
             songs_name.append(str(sp.stem))
         return songs_name
 
     def sync(self, depository: "Depository"):
+        '''
+        sync.
+        '''
         from .Record import record
         diff = diff_list(record['netease']['old'], self.online_songs_path)
-        self.assign(depository, diff)
+        self.dispatch(depository, diff)
 
         self.delete(depository, diff)
 
-    def assign(self, depository, diff):
-        from .Record import record
+    def dispatch(self, depository, diff):
+        '''
+        dispatch accessible songs to repositories.
+        '''
+        from .Record import record #pylint:disable = import-outside-toplevel
         record['netease']['old'] = self.online_songs_path
 
         songs_to_assign = set(record['netease']['unavailable']) | set(diff['+'])
-        songs_to_assign_actually = set(
-            [song for song in songs_to_assign if self.accessible(song)])
+        songs_to_assign_actually = {song for song in songs_to_assign if self.accessible(song)}
         record['netease']['unavailable'] = list(
             songs_to_assign-songs_to_assign_actually)
 
@@ -84,11 +103,18 @@ class Netease:
                     shutil.copy(src, dst)
 
     def accessible(self, online_song_path: str) -> bool:
+        '''
+        determine if an online song is locally accessible.
+        '''
         online_song_path = Path(online_song_path)
         return online_song_path.stem in self.local_songs_name
 
     def delete(self, depository, diff):
-        from .Record import record
+        '''
+        delete the song files in the repository that should be deleted.
+        for example, the songs may have been deleted from the NetEase Cloud account.
+        '''
+        from .Record import record #pylint:disable = import-outside-toplevel
         songs_be_deleted = set(diff['-']) & set(record['netease']['deleting'])
         songs_to_delete = set(diff['-']) - set(record['netease']['deleting'])
         record['netease']['deleting'] = list(
@@ -101,6 +127,9 @@ class Netease:
                     os.remove(depository.path / i.with_suffix(suffix))
 
     def convert_name_format(self) -> None:
+        '''
+        convert the file name like "artist-song name" or "song name-artist" to each other.
+        '''
         for song in self.local_songs_name:
             for suffix in ('.mp3', '.flac'):
                 if (path := self.download_path / Path(song).with_suffix(suffix)).exists():

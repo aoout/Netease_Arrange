@@ -35,18 +35,6 @@ class DataDict(UserDict):
             self.data, ensure_ascii=self.ensure_ascii), encoding=self.encoding)
 
 
-def diff_dict(a: dict, b: dict) -> dict:
-    '''
-    compare increased keys or decreased keys between two dicts.
-    '''
-    a_keys_set = set(a.keys())
-    b_keys_set = set(b.keys())
-    return {
-        "+": list(b_keys_set - a_keys_set),
-        "-": list(a_keys_set - b_keys_set)
-    }
-
-
 def diff_list(a: list, b: list) -> dict:
     '''
     compare increases or decreases between two lists.
@@ -77,16 +65,6 @@ def is_json(string: str) -> bool:
         return False
 
 
-def split_list(list_: list, max_length: int) -> List[list]:
-    '''
-    split the string to multi-strings, so that everyone has a max-lenght.
-    '''
-    result = []
-    i = 0
-    while i < len(list_):
-        result.append(list_[i:i+max_length])
-        i += max_length
-    return result
 
 def init_lwpcookiejar(path:str or Path)->None:
     '''
