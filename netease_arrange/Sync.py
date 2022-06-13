@@ -1,28 +1,28 @@
-from typing import Callable, Optional,List
+from typing import Callable, List, Optional
+
+from .Depository import Depository
+from .Netease import Netease
+from .Paths import Paths
+from .Record import Record
 
 
-def Sync(account: str or int,
-         password: str or int,
+def sync(account: str,
+         password: str,
          depository: str,
          netease_download_path: str,
-         playlist_filter: Optional[Callable]=None,
-         group_platlists_prefix:List[str]=None
+         playlist_filter: Optional[Callable] = None,
+         group_platlists_prefix: List[str] = None
          ):
-    account = str(account)
-    password = str(password)
-    from .Paths import paths
-    paths.init(account)
 
-    from .Netease import Netease
+    Paths().init(account)
+
     netease = Netease(netease_download_path, group_platlists_prefix)
-    netease.login(account,password)
+    netease.login(account, password)
     if playlist_filter:
         netease.api.playlist_filter = playlist_filter
 
-    from .Depository import Depository
     depository = Depository(depository)
     depository.diff()
     netease.sync(depository)
 
-    from .Record import record
-    record.write()
+    Record().write()

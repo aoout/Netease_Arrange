@@ -1,1 +1,1 @@
-from .Sync import Sync
+from .Sync import sync

@@ -4,7 +4,7 @@ from itertools import chain
 from pathlib import Path
 from typing import List
 
-
+from .Record import Record
 from .util import diff_list
 
 
@@ -12,6 +12,7 @@ class Depository():
     '''
     manage all the music.
     '''
+
     def __init__(self, path: Path or str) -> None:
         path = Path(path)
         self.path = path
@@ -30,14 +31,13 @@ class Depository():
         '''
         compare with the music file situation when the program was last launched.
         '''
-        from .Record import record # pylint:disable=import-outside-toplevel
-        diff = diff_list(record['depository']['old'], self.songs_path)
-        record['depository']['old'] = self.songs_path
+        diff = diff_list(Record()['depository']['old'], self.songs_path)
+        Record()['depository']['old'] = self.songs_path
 
-        record['netease']['deleting'] += diff_list(
-            record['netease']['deleting'], diff['-'])['+']
+        Record()['netease']['deleting'] += diff_list(
+            Record()['netease']['deleting'], diff['-'])['+']
 
-    def convert_name_format(self) -> None: 
+    def convert_name_format(self) -> None:
         '''
         convert the file name like "artist-song name" or "song name-artist" to each other.
         '''

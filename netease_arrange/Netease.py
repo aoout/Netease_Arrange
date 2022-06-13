@@ -1,4 +1,5 @@
-# pylint:disable = missing-module-docstring
+# pylint:disable = missing-module-docstring,line-too-long
+
 import os
 import shutil
 from functools import cached_property
@@ -7,7 +8,8 @@ from pathlib import Path
 from typing import List
 
 from .Api import Api
-from .Paths import paths
+from .Paths import Paths
+from .Record import Record
 from .util import diff_list
 
 
@@ -16,31 +18,33 @@ class Netease:
     manage online playlists on NetEase Cloud and their local downloaded files.
     those online songs that have a corresponding downloaded file locally are said to be accessible.
     '''
+
     def __init__(self, download_path: Path or str, group_playlists_prefix: List[str] = None) -> None:
         download_path = Path(download_path)
         self.download_path = download_path
+        self.api = Api()
         self.group_playlists_prefix = group_playlists_prefix if group_playlists_prefix else []
 
     def login(self, account: str, password: str) -> None:
         '''
         log in to NetEase Cloud Music.
         '''
-        self.api = Api(account, password)
+        self.api.login(account, password)
 
     def _convert(self) -> None:
         '''
-        
+        Transcode vip songs.
         '''
-        if paths['converter']:
-            self.vip_songs_path = self.download_path / 'VipSongsDownload'
-            for vs in self.vip_songs_path.rglob('*.ncm'):
+        if Paths()['converter']:
+            vip_songs_path = self.download_path / 'VipSongsDownload'
+            for vs in vip_songs_path.rglob('*.ncm'):
                 if vs not in self.local_songs_name:
-                    os.system(f'{paths["converter"]} "{vs}"')
+                    os.system(f'{Paths()["converter"]} "{vs}"')
 
     @cached_property
     def online_songs_path(self) -> List[str]:
         '''
-        
+        Get the path of all online songs.
         '''
         self.api.update()
         songs_path = []
@@ -74,8 +78,7 @@ class Netease:
         '''
         sync.
         '''
-        from .Record import record
-        diff = diff_list(record['netease']['old'], self.online_songs_path)
+        diff = diff_list(Record()['netease']['old'], self.online_songs_path)
         self.dispatch(depository, diff)
 
         self.delete(depository, diff)
@@ -84,12 +87,13 @@ class Netease:
         '''
         dispatch accessible songs to repositories.
         '''
-        from .Record import record #pylint:disable = import-outside-toplevel
-        record['netease']['old'] = self.online_songs_path
+        Record()['netease']['old'] = self.online_songs_path
 
-        songs_to_assign = set(record['netease']['unavailable']) | set(diff['+'])
-        songs_to_assign_actually = {song for song in songs_to_assign if self.accessible(song)}
-        record['netease']['unavailable'] = list(
+        songs_to_assign = set(
+            Record()['netease']['unavailable']) | set(diff['+'])
+        songs_to_assign_actually = {
+            song for song in songs_to_assign if self.accessible(song)}
+        Record()['netease']['unavailable'] = list(
             songs_to_assign-songs_to_assign_actually)
 
         for song in songs_to_assign_actually:
@@ -114,12 +118,12 @@ class Netease:
         delete the song files in the repository that should be deleted.
         for example, the songs may have been deleted from the NetEase Cloud account.
         '''
-        from .Record import record #pylint:disable = import-outside-toplevel
-        songs_be_deleted = set(diff['-']) & set(record['netease']['deleting'])
-        songs_to_delete = set(diff['-']) - set(record['netease']['deleting'])
-        record['netease']['deleting'] = list(
-            set(record['netease']['deleting']) - songs_be_deleted - set(record['netease']['last_deleted']))
-        record['netease']['last_deleted'] = list(songs_to_delete)
+        songs_be_deleted = set(
+            diff['-']) & set(Record()['netease']['deleting'])
+        songs_to_delete = set(diff['-']) - set(Record()['netease']['deleting'])
+        Record()['netease']['deleting'] = list(
+            set(Record()['netease']['deleting']) - songs_be_deleted - set(Record()['netease']['last_deleted']))
+        Record()['netease']['last_deleted'] = list(songs_to_delete)
         for i in songs_to_delete:
             i = Path(i)
             for suffix in ('.mp3', '.flac'):

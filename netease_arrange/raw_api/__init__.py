@@ -1,2 +1,2 @@
-# pylint:disable = missing-function-docstring
+# pylint:disable = missing-module-docstring
 from .rawapi import RawApi

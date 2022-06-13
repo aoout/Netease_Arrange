@@ -2,7 +2,20 @@
 import json
 from collections import UserDict
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
+
+
+
+def Singleton(clsObject):
+    '''
+    Implementing the singleton pattern of classes through metaclass.
+    '''
+    def inner(*args, **kwargs):
+        if not hasattr(clsObject, "ins"):
+            insObject = clsObject(*args, **kwargs)
+            setattr(clsObject, "ins", insObject)
+        return getattr(clsObject, "ins")
+    return inner
 
 
 class DataDict(UserDict):
@@ -65,10 +78,10 @@ def is_json(string: str) -> bool:
         return False
 
 
-
-def init_lwpcookiejar(path:str or Path)->None:
+def init_lwpcookiejar(path: str or Path) -> None:
     '''
     init LWPCookieJar.
     '''
     path = Path(path)
-    path.write_text('#LWP-Cookies-2.0\n') #pylint:disable =unspecified-encoding
+    path.write_text(
+        '#LWP-Cookies-2.0\n')  # pylint:disable =unspecified-encoding

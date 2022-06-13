@@ -11,7 +11,7 @@ from typing import Callable, List, Optional
 import requests
 from requests.models import Response
 
-from ..Paths import paths
+from ..Paths import Paths
 from ..util import is_json
 from .decrypt import encrypted_password, encrypted_request
 
@@ -68,7 +68,7 @@ class RawApi:
 
         cls._session = requests.Session()
 
-        cookie_jar = LWPCookieJar(paths['cookies'])
+        cookie_jar = LWPCookieJar(Paths()['cookies'])
         cookie_jar.load()
 
         cls._session.cookies = cookie_jar

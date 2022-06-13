@@ -6,7 +6,7 @@ make the acquired data more structured and try to reduce the inconvenience of ac
 
 from typing import Dict, Optional, Tuple
 
-from .Paths import paths
+from .Paths import Paths
 from .raw_api import RawApi
 from .util import DataDict, to_pathname
 
@@ -16,14 +16,19 @@ class Api:
     make the acquired data more structured and try to reduce the inconvenience of access restrictions.
     '''
 
-    def __init__(self, account: str, password: str) -> None:
-        self.account = account
-        self.password = password
-        self.user_id = RawApi.login_cellphone(self.account, self.password)
+    def __init__(self) -> None:
+
+        self.user_id = None
         self.data = DataDict(
-            paths['api_data'], encoding='utf-8', ensure_ascii=False)
+            Paths()['api_data'], encoding='utf-8', ensure_ascii=False)
         self.data.read()
         self.playlist_filter = lambda playlist: not playlist['subscribed']
+
+    def login(self, account: str, password: str) -> None:
+        '''
+        login in NetEase Cloud Music.
+        '''
+        self.user_id = RawApi.login_cellphone(account, password)
 
     def update(self) -> None:
         '''
